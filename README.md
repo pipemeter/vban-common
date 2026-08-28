@@ -21,17 +21,6 @@ know what a gain is, whether it is decibels, or what changing it should do.
 That belongs to the application. Keeping the split is what lets the tests run
 against nothing at all.
 
-## Notes
-
-Decibels travel as hundredths in a signed short, and the conversion saturates.
-Wrapping would turn silence into something loud at the far end.
-
-Labels are cut on a character boundary. Some clients decode strictly, and a
-label sliced through an accent is not text.
-
-RT packet offsets are absolute, header included, so they read the same here as
-in every client that parses them.
-
 ## License
 
 Public domain. See UNLICENSE.
