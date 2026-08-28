@@ -1,0 +1,24 @@
+[package]
+name = "vban-common"
+version = "0.1.0"
+edition = "2024"
+authors = ["PipeMeeter Team <dev@pipemeeter.org>"]
+description = "Pure Rust wire types, serialization, and packet definitions for the VBAN protocol"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/pipemeeter/vban-common"
+
+[lib]
+name = "vban_common"
+path = "src/lib.rs"
+
+[dependencies]
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+cast_precision_loss = "allow"
+cast_possible_truncation = "allow"
+similar_names = "allow"
