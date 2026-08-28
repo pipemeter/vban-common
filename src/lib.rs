@@ -144,7 +144,10 @@ impl Header {
         }
         let format_sr = data[4];
         let name = &data[8..8 + STREAM_NAME_SIZE];
-        let end = name.iter().position(|byte| *byte == 0).unwrap_or(name.len());
+        let end = name
+            .iter()
+            .position(|byte| *byte == 0)
+            .unwrap_or(name.len());
         Some(Self {
             protocol: SubProtocol::from_format(format_sr),
             // Only the bits that are not the sub-protocol: the protocol is
@@ -213,7 +216,10 @@ pub fn parse(data: &[u8]) -> Option<Packet> {
             // Trailing nulls are padding, not text. A client that pads to a
             // fixed size would otherwise hand us a parameter name with a
             // null on the end that matches nothing.
-            let end = body.iter().position(|byte| *byte == 0).unwrap_or(body.len());
+            let end = body
+                .iter()
+                .position(|byte| *byte == 0)
+                .unwrap_or(body.len());
             Packet::Text {
                 body: String::from_utf8_lossy(&body[..end]).into_owned(),
                 header,
@@ -450,10 +456,10 @@ pub mod pong {
         for value in [
             TYPE_VIRTUAL_MIXER,
             FEATURE_TEXT,
-            0,       // no extended features
-            48_000,  // preferred rate
-            8_000,   // minimum
-            192_000, // maximum
+            0,           // no extended features
+            48_000,      // preferred rate
+            8_000,       // minimum
+            192_000,     // maximum
             0x0071_c399, // the colour the mixer is drawn in
         ] {
             out.extend_from_slice(&value.to_le_bytes());

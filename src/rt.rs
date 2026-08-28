@@ -184,7 +184,12 @@ pub fn payload(state: &State) -> Vec<u8> {
     packet[offset::SAMPLE_RATE..offset::SAMPLE_RATE + 4]
         .copy_from_slice(&state.sample_rate.to_le_bytes());
 
-    for (i, level) in state.strip_levels.iter().take(STRIP_LEVEL_SLOTS).enumerate() {
+    for (i, level) in state
+        .strip_levels
+        .iter()
+        .take(STRIP_LEVEL_SLOTS)
+        .enumerate()
+    {
         let at = offset::STRIP_LEVELS + i * 2;
         packet[at..at + 2].copy_from_slice(&db100(*level).to_le_bytes());
     }
