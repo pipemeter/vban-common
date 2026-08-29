@@ -422,7 +422,7 @@ mod tests {
 
     #[test]
     fn a_pong_is_the_size_the_protocol_says() {
-        let body = super::pong::payload("pipemeeter", "host");
+        let body = super::pong::payload("pipemeter", "host");
         assert_eq!(body.len(), super::pong::PAYLOAD_SIZE);
         assert_eq!(
             encode(&pong_header(0), &body).len(),
@@ -433,7 +433,7 @@ mod tests {
     /// The first field is how a client decides what it is talking to.
     #[test]
     fn a_pong_calls_itself_a_mixer() {
-        let body = super::pong::payload("pipemeeter", "host");
+        let body = super::pong::payload("pipemeter", "host");
         let kind = u32::from_le_bytes([body[0], body[1], body[2], body[3]]);
         assert_eq!(kind, super::pong::TYPE_VIRTUAL_MIXER);
     }

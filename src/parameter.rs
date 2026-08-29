@@ -24,7 +24,7 @@ pub enum Target {
     Recorder,
     /// One of the macro buttons.
     Button(usize),
-    /// Ours, outside Voicemeeter's tree: `PipeMeeter.Window=reverb`.
+    /// Ours, outside Voicemeeter's tree: `PipeMeter.Window=reverb`.
     ///
     /// A namespace of our own rather than new fields on `Command`, so a
     /// macro written for the original can never collide with one of these
@@ -127,7 +127,9 @@ fn parse_name(name: &str) -> Option<(Target, String)> {
         // field rather than the head, and the mixer reads it from there.
         ("command", _) => Target::Command,
         ("recorder", None) => Target::Recorder,
-        ("pipemeeter", None) => Target::App,
+        // The library's own name, not the mixer's: this crate is public and
+        // the branding is not.
+        ("pipemeter", None) => Target::App,
         _ => Target::Unknown,
     };
     Some((target, field))
@@ -214,7 +216,7 @@ mod tests {
     /// clash with.
     #[test]
     fn our_own_commands_are_their_own_target() {
-        let read = parse_request("PipeMeeter.Window=reverb;pipemeeter.dump=1");
+        let read = parse_request("PipeMeter.Window=reverb;pipemeter.dump=1");
         assert_eq!(read[0].target, Target::App);
         assert_eq!(read[0].field, "window");
         assert_eq!(read[0].value, "reverb");
