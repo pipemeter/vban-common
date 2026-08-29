@@ -5,7 +5,7 @@ edition = "2024"
 authors = ["PipeMeeter Team <dev@pipemeeter.org>"]
 description = "Pure Rust wire types, serialization, and packet definitions for the VBAN protocol"
 license = "Unlicense"
-repository = "https://github.com/pipemeeter/vban-common"
+repository = "https://github.com/pipemeter/vban-common"
 
 [lib]
 name = "vban_common"
