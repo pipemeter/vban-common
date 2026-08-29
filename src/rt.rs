@@ -148,8 +148,6 @@ fn db100(value: f32) -> i16 {
     } else if scaled >= f32::from(i16::MAX) {
         i16::MAX
     } else {
-        // Rounded first: truncation would make every negative gain read a
-        // hundredth louder than it is.
         scaled.round() as i16
     }
 }
@@ -157,8 +155,6 @@ fn db100(value: f32) -> i16 {
 /// Write a label into its fixed-width slot.
 fn label(out: &mut [u8], text: &str) {
     let bytes = text.as_bytes();
-    // Truncated on a character boundary, so a label with an accent in it
-    // cannot be cut into something that is not text.
     let mut len = bytes.len().min(LABEL_SIZE - 1);
     while len > 0 && !text.is_char_boundary(len) {
         len -= 1;
@@ -230,7 +226,6 @@ pub fn payload(state: &State) -> Vec<u8> {
         label(&mut packet[at..at + LABEL_SIZE], text);
     }
 
-    // The header goes on the front, written by the caller.
     packet
 }
 
@@ -248,7 +243,6 @@ mod tests {
         assert_eq!(db100(0.0), 0);
         assert_eq!(db100(-6.0), -600);
         assert_eq!(db100(12.0), 1200);
-        // Rounded, not truncated: -6.005 is nearer -6.01 than -6.00.
         assert_eq!(db100(-6.005), -601);
     }
 

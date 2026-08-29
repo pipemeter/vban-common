@@ -61,9 +61,6 @@ impl SubProtocol {
             0x20 => Self::Serial,
             0x40 => Self::Text,
             0x60 => Self::Service,
-            // 0x00 is audio, and the four undefined values are not ours to
-            // guess at - treating them as audio means they are declined,
-            // which is the right answer for anything we do not know.
             _ => Self::Audio,
         }
     }
@@ -150,15 +147,10 @@ impl Header {
             .unwrap_or(name.len());
         Some(Self {
             protocol: SubProtocol::from_format(format_sr),
-            // Only the bits that are not the sub-protocol: the protocol is
-            // held once, in its own field, so that a header cannot be built
-            // claiming one thing in two places and disagreeing.
             format_sr: format_sr & !SubProtocol::MASK,
             format_nbs: data[5],
             format_nbc: data[6],
             format_bit: data[7],
-            // Lossy on purpose: a name is for logs and for matching, and a
-            // packet with a bad byte in it should not vanish silently.
             stream_name: String::from_utf8_lossy(&name[..end]).into_owned(),
             frame: u32::from_le_bytes([data[24], data[25], data[26], data[27]]),
         })
@@ -169,8 +161,6 @@ impl Header {
     pub fn to_bytes(&self) -> [u8; HEADER_SIZE] {
         let mut out = [0u8; HEADER_SIZE];
         out[..4].copy_from_slice(MAGIC);
-        // The protocol bits win over whatever the rest of the byte holds,
-        // so a header built by hand cannot claim to be two things.
         out[4] = (self.format_sr & !SubProtocol::MASK) | self.protocol.bits();
         out[5] = self.format_nbs;
         out[6] = self.format_nbc;
@@ -213,9 +203,6 @@ pub fn parse(data: &[u8]) -> Option<Packet> {
     let body = &data[HEADER_SIZE..];
     Some(match header.protocol {
         SubProtocol::Text => {
-            // Trailing nulls are padding, not text. A client that pads to a
-            // fixed size would otherwise hand us a parameter name with a
-            // null on the end that matches nothing.
             let end = body
                 .iter()
                 .position(|byte| *byte == 0)
@@ -273,8 +260,6 @@ pub fn reply_header(frame: u32) -> Header {
     Header {
         protocol: SubProtocol::Service,
         format_sr: 0,
-        // `FNCT_REPLY`, which is what marks this an answer rather than a
-        // request of the same kind.
         format_nbs: 0x80,
         format_nbc: 0x02,
         format_bit: 0,
@@ -309,7 +294,6 @@ mod tests {
             format_sr: 0,
             format_nbs: 0,
             format_nbc: 0,
-            // UTF8, which is what the clients send.
             format_bit: 0x10,
             stream_name: "Command1".to_owned(),
             frame: 7,
@@ -395,7 +379,6 @@ mod tests {
         assert!(parse(&[]).is_none());
         assert!(parse(b"VBA").is_none());
         assert!(parse(&[0u8; HEADER_SIZE]).is_none(), "no magic");
-        // Long enough and correctly marked, but empty: still a valid header.
         assert!(parse(&encode(&text_header(), &[])).is_some());
     }
 
@@ -488,27 +471,26 @@ pub mod pong {
         for value in [
             TYPE_VIRTUAL_MIXER,
             FEATURE_TEXT,
-            0,           // no extended features
-            48_000,      // preferred rate
-            8_000,       // minimum
-            192_000,     // maximum
-            0x0071_c399, // the colour the mixer is drawn in
+            0,
+            48_000,
+            8_000,
+            192_000,
+            0x0071_c399,
         ] {
             out.extend_from_slice(&value.to_le_bytes());
         }
-        // Version, as four bytes rather than a number.
         out.extend_from_slice(&[0, 1, 0, 0]);
-        out.resize(out.len() + 8 + 8, 0); // GPS and user position
+        out.resize(out.len() + 8 + 8, 0);
         field(&mut out, "EN", 8);
-        out.resize(out.len() + 8 + 64, 0); // reserved, then reserved extended
-        out.resize(out.len() + 32, 0); // distant IP, filled in by the asker
-        out.extend_from_slice(&0u16.to_le_bytes()); // distant port
-        out.extend_from_slice(&0u16.to_le_bytes()); // distant reserved
-        field(&mut out, "PipeMeeter", 64); // device
-        field(&mut out, "PipeMeeter", 64); // manufacturer
+        out.resize(out.len() + 8 + 64, 0);
+        out.resize(out.len() + 32, 0);
+        out.extend_from_slice(&0u16.to_le_bytes());
+        out.extend_from_slice(&0u16.to_le_bytes());
+        field(&mut out, "PipeMeter", 64);
+        field(&mut out, "PipeMeter", 64);
         field(&mut out, application, 64);
         field(&mut out, host, 64);
-        field(&mut out, "", 128); // user name
+        field(&mut out, "", 128);
         field(&mut out, "A Voicemeeter-shaped mixer for PipeWire", 128);
 
         debug_assert_eq!(out.len(), PAYLOAD_SIZE);

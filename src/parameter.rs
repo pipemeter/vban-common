@@ -65,7 +65,6 @@ impl Parameter {
         match self.value.trim().to_ascii_lowercase().as_str() {
             "1" | "on" | "true" | "yes" => Some(true),
             "0" | "off" | "false" | "no" => Some(false),
-            // A float that is not 0 counts as on: clients send `1.0`.
             other => other.parse::<f32>().ok().map(|value| value != 0.0),
         }
     }
@@ -93,8 +92,6 @@ fn parse_assignment(line: &str) -> Option<Parameter> {
     Some(Parameter {
         target,
         field,
-        // Quotes are stripped: a label with a space in it arrives quoted,
-        // and the quotes are the protocol's, not part of the name.
         value: value.trim().trim_matches('"').to_owned(),
         raw: line.to_owned(),
     })
@@ -102,8 +99,6 @@ fn parse_assignment(line: &str) -> Option<Parameter> {
 
 /// Split `Strip[0].Gain` into what it addresses and which field.
 fn parse_name(name: &str) -> Option<(Target, String)> {
-    // `Command.Restart` always has a dot; something without one is not a
-    // parameter we can place.
     let (head, field) = name.split_once('.')?;
     let field = field.trim().to_ascii_lowercase();
     if field.is_empty() {
@@ -123,12 +118,8 @@ fn parse_name(name: &str) -> Option<(Target, String)> {
         ("strip", Some(index)) => Target::Strip(index),
         ("bus", Some(index)) => Target::Bus(index),
         ("button", Some(index)) => Target::Button(index),
-        // Indexed or not: `Command.Button[3].State` puts the index on the
-        // field rather than the head, and the mixer reads it from there.
         ("command", _) => Target::Command,
         ("recorder", None) => Target::Recorder,
-        // The library's own name, not the mixer's: this crate is public and
-        // the branding is not.
         ("pipemeter", None) => Target::App,
         _ => Target::Unknown,
     };
