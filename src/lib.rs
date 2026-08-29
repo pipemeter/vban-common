@@ -263,6 +263,26 @@ pub fn pong_header(frame: u32) -> Header {
     }
 }
 
+/// The header of a reply to a query.
+///
+/// A client that ends a request with `?` waits for one of these. It is a
+/// service packet like the others, told apart by carrying the reply
+/// sub-type in the second format byte as well as the third.
+#[must_use]
+pub fn reply_header(frame: u32) -> Header {
+    Header {
+        protocol: SubProtocol::Service,
+        format_sr: 0,
+        // `FNCT_REPLY`, which is what marks this an answer rather than a
+        // request of the same kind.
+        format_nbs: 0x80,
+        format_nbc: 0x02,
+        format_bit: 0,
+        stream_name: "Request Reply".to_owned(),
+        frame,
+    }
+}
+
 /// The header of a state packet.
 #[must_use]
 pub fn rt_header(frame: u32) -> Header {
@@ -388,6 +408,18 @@ mod tests {
 
     /// A client checks the whole packet's length before it will believe a
     /// pong, so this size is a handshake requirement rather than a detail.
+    /// A client tells a reply from a request by the second format byte,
+    /// not only the third, so both have to be set.
+    #[test]
+    fn a_reply_is_marked_as_one() {
+        let header = super::reply_header(1);
+        assert_eq!(header.protocol, SubProtocol::Service);
+        assert_eq!(header.format_nbs, 0x80);
+        assert_eq!(header.format_nbc, 0x02);
+        assert_eq!(header.stream_name, "Request Reply");
+        assert_eq!(Header::parse(&header.to_bytes()), Some(header));
+    }
+
     #[test]
     fn a_pong_is_the_size_the_protocol_says() {
         let body = super::pong::payload("pipemeeter", "host");
