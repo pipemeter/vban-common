@@ -295,8 +295,10 @@ mod tests {
 
     #[test]
     fn labels_are_written_and_terminated() {
-        let mut given = State::default();
-        given.strip_labels = vec!["Mic IN".to_owned()];
+        let given = State {
+            strip_labels: vec!["Mic IN".to_owned()],
+            ..State::default()
+        };
         let packet = payload(&given);
         let at = offset::STRIP_LABELS;
         assert_eq!(&packet[at..at + 6], b"Mic IN");
@@ -306,8 +308,10 @@ mod tests {
     /// A long label must not run into the next one's slot.
     #[test]
     fn a_long_label_stays_in_its_slot() {
-        let mut given = State::default();
-        given.strip_labels = vec!["x".repeat(200), "second".to_owned()];
+        let given = State {
+            strip_labels: vec!["x".repeat(200), "second".to_owned()],
+            ..State::default()
+        };
         let packet = payload(&given);
         assert_eq!(packet[offset::STRIP_LABELS + LABEL_SIZE - 1], 0);
         let at = offset::STRIP_LABELS + LABEL_SIZE;
@@ -318,8 +322,10 @@ mod tests {
     /// text, and some clients decode strictly.
     #[test]
     fn a_label_is_cut_on_a_character_boundary() {
-        let mut given = State::default();
-        given.strip_labels = vec!["é".repeat(40)];
+        let given = State {
+            strip_labels: vec!["é".repeat(40)],
+            ..State::default()
+        };
         let packet = payload(&given);
         let at = offset::STRIP_LABELS;
         let slot = &packet[at..at + LABEL_SIZE];
