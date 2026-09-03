@@ -231,7 +231,83 @@ pub fn payload(state: &State) -> Vec<u8> {
 
 #[cfg(test)]
 mod tests {
-    use super::{CHANNELS, LABEL_SIZE, PACKET_SIZE, State, db100, offset, payload, state};
+    use super::{
+        BUS_LEVEL_SLOTS, CHANNELS, LABEL_SIZE, LAYERS, PACKET_SIZE, STRIP_LEVEL_SLOTS, State,
+        db100, offset, payload, state,
+    };
+
+    /// The layout is a contract with clients we did not write - vban-cmd,
+    /// a stream deck profile, someone's macro - and they index into it by
+    /// number. So the numbers are written out here rather than taken from
+    /// `offset`, which is the only way this can fail when one of them
+    /// moves: every other test in this file reads through the same
+    /// constants the writer uses, so a typo would shift both together and
+    /// be invisible.
+    #[test]
+    fn the_layout_is_where_the_protocol_says() {
+        assert_eq!(offset::KIND, 28);
+        assert_eq!(offset::BUFFER_SIZE, 30);
+        assert_eq!(offset::VERSION, 32);
+        assert_eq!(offset::OPTIONS, 36);
+        assert_eq!(offset::SAMPLE_RATE, 40);
+        assert_eq!(offset::STRIP_LEVELS, 44);
+        assert_eq!(offset::BUS_LEVELS, 112);
+        assert_eq!(offset::TRANSPORT, 240);
+        assert_eq!(offset::STRIP_STATE, 244);
+        assert_eq!(offset::BUS_STATE, 276);
+        assert_eq!(offset::STRIP_GAIN_LAYERS, 308);
+        assert_eq!(offset::BUS_GAIN, 436);
+        assert_eq!(offset::STRIP_LABELS, 452);
+        assert_eq!(offset::BUS_LABELS, 932);
+        assert_eq!(offset::END, 1412);
+    }
+
+    /// And each field has to fill the gap to the next one exactly, or a
+    /// count changed without the offsets following it.
+    #[test]
+    fn every_field_fills_the_room_it_is_given() {
+        assert_eq!(
+            offset::BUS_LEVELS - offset::STRIP_LEVELS,
+            STRIP_LEVEL_SLOTS * 2,
+            "strip levels"
+        );
+        assert_eq!(
+            offset::TRANSPORT - offset::BUS_LEVELS,
+            BUS_LEVEL_SLOTS * 2,
+            "bus levels"
+        );
+        assert_eq!(offset::STRIP_STATE - offset::TRANSPORT, 4, "transport word");
+        assert_eq!(
+            offset::BUS_STATE - offset::STRIP_STATE,
+            CHANNELS * 4,
+            "strip state words"
+        );
+        assert_eq!(
+            offset::STRIP_GAIN_LAYERS - offset::BUS_STATE,
+            CHANNELS * 4,
+            "bus state words"
+        );
+        assert_eq!(
+            offset::BUS_GAIN - offset::STRIP_GAIN_LAYERS,
+            LAYERS * CHANNELS * 2,
+            "strip gains, one set per layer"
+        );
+        assert_eq!(
+            offset::STRIP_LABELS - offset::BUS_GAIN,
+            CHANNELS * 2,
+            "bus gains"
+        );
+        assert_eq!(
+            offset::BUS_LABELS - offset::STRIP_LABELS,
+            CHANNELS * LABEL_SIZE,
+            "strip labels"
+        );
+        assert_eq!(
+            offset::END - offset::BUS_LABELS,
+            CHANNELS * LABEL_SIZE,
+            "bus labels"
+        );
+    }
 
     #[test]
     fn a_packet_is_the_size_clients_index_into() {

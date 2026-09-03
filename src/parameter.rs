@@ -214,6 +214,31 @@ mod tests {
         assert_eq!(read[1].target, Target::App);
     }
 
+    /// The deepest address the protocol carries. The head splits at the
+    /// first dot and everything after it is the field, indices and all -
+    /// which is what lets the mixer route this to one cell of one channel
+    /// of one bus's EQ.
+    #[test]
+    fn a_field_keeps_its_own_indices() {
+        let read = parse_request("Bus[0].eq.channel[1].cell[2].gain=-4.5");
+        assert_eq!(read.len(), 1);
+        assert_eq!(read[0].target, Target::Bus(0));
+        assert_eq!(read[0].field, "eq.channel[1].cell[2].gain");
+        assert_eq!(read[0].as_float(), Some(-4.5));
+    }
+
+    /// A value may contain an `=` of its own. Only the first one separates
+    /// the name from the value, which is what `PipeMeter.Assign` relies on
+    /// to say which slot gets which device.
+    #[test]
+    fn only_the_first_equals_separates() {
+        let read = parse_request("PipeMeter.Assign=bus:0=alsa_output.usb-Thing.analog-stereo");
+        assert_eq!(read.len(), 1);
+        assert_eq!(read[0].target, Target::App);
+        assert_eq!(read[0].field, "assign");
+        assert_eq!(read[0].value, "bus:0=alsa_output.usb-Thing.analog-stereo");
+    }
+
     #[test]
     fn something_we_do_not_implement_is_named_rather_than_guessed() {
         let read = parse_request("Patch.Composite[0]=3;Vban.Instream[0].On=1");
