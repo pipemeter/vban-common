@@ -57,16 +57,31 @@ impl Parameter {
         self.value.trim().parse().ok()
     }
 
-    /// The value as a switch. `1` and `0` are what the protocol uses;
-    /// `on`, `off`, `true` and `false` are accepted because people type
-    /// requests by hand and the cost of being kind here is nothing.
+    /// The value as a switch. See [`truth`].
     #[must_use]
     pub fn as_bool(&self) -> Option<bool> {
-        match self.value.trim().to_ascii_lowercase().as_str() {
-            "1" | "on" | "true" | "yes" => Some(true),
-            "0" | "off" | "false" | "no" => Some(false),
-            other => other.parse::<f32>().ok().map(|value| value != 0.0),
-        }
+        truth(&self.value)
+    }
+}
+
+/// Read a switch out of whatever a person typed.
+///
+/// `1` and `0` are what the protocol uses; `on`, `off`, `true`, `false`,
+/// `yes` and `no` are accepted because people type requests by hand and the
+/// cost of being kind here is nothing. Any other number is true when it is
+/// not zero.
+///
+/// `None` for anything else, which is the point: a caller that takes
+/// "anything I do not recognise" as `false` turns a typo into the opposite
+/// instruction. A free function because the menu options are set from a
+/// bare string rather than from a parsed [`Parameter`], and they were
+/// matching only the four words meaning yes.
+#[must_use]
+pub fn truth(text: &str) -> Option<bool> {
+    match text.trim().to_ascii_lowercase().as_str() {
+        "1" | "on" | "true" | "yes" => Some(true),
+        "0" | "off" | "false" | "no" => Some(false),
+        other => other.parse::<f32>().ok().map(|value| value != 0.0),
     }
 }
 
@@ -128,7 +143,28 @@ fn parse_name(name: &str) -> Option<(Target, String)> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Target, parse_request};
+    use super::{Target, parse_request, truth};
+
+    #[test]
+    fn the_words_people_type_for_yes_and_no_are_understood() {
+        for yes in ["1", "on", "true", "yes", "ON", " Yes ", "2", "-1"] {
+            assert_eq!(truth(yes), Some(true), "{yes:?}");
+        }
+        for no in ["0", "off", "false", "no", "OFF", " No ", "0.0"] {
+            assert_eq!(truth(no), Some(false), "{no:?}");
+        }
+    }
+
+    /// Anything that is not a truth value is refused rather than taken as
+    /// no. A caller that reads "I do not recognise this" as `false` turns a
+    /// typo into the opposite instruction - `lockgui=enabled` unlocked the
+    /// interface.
+    #[test]
+    fn a_value_that_is_not_a_switch_is_refused() {
+        for nonsense in ["", "enabled", "disabled", "maybe", "y", "n"] {
+            assert_eq!(truth(nonsense), None, "{nonsense:?}");
+        }
+    }
 
     #[test]
     fn one_assignment() {
